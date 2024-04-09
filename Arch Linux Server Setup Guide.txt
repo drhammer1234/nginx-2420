@@ -1,0 +1,79 @@
+Arch Linux Server Setup Guide
+In this guide, we will set up a firewall using UFW (Uncomplicated Firewall) and configure a reverse proxy server using Nginx to route traffic to a backend service. The backend service provided is a compiled binary that runs on port 8080.
+
+Step 1: Installing and Configuring UFW (Uncomplicated Firewall)
+Install UFW:
+
+bash
+Copy code
+sudo pacman -S ufw
+Enable UFW:
+
+bash
+Copy code
+sudo ufw enable
+Allow SSH connections (if SSH is used to connect to the server):
+
+bash
+Copy code
+sudo ufw allow ssh
+Step 2: Setting Up the Backend Service
+Transfer the backend binary to your server using SFTP or any preferred method.
+
+Place the backend binary in a logical location on your server.
+
+Create a new service file to run the backend:
+
+Example service file (backend.service):
+
+[Unit]
+Description=Backend Service
+After=network.target
+
+[Service]
+ExecStart=/path/to/backend/binary
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+Replace /path/to/backend/binary with the actual path to your backend binary.
+
+Save the service file and reload systemd:
+
+sudo systemctl daemon-reload
+Start the backend service:
+
+sudo systemctl start backend
+Ensure the service starts automatically on boot:
+
+sudo systemctl enable backend
+
+Step 3: Configuring Nginx Reverse Proxy
+
+sudo vim /etc/nginx/nginx.conf
+Add a new server block or modify the default one to include reverse proxy configuration:\
+
+http {
+    ...
+    server {
+        listen 80;
+        server_name your_domain.com;
+
+        location /hey {
+            proxy_pass http://127.0.0.1:8080/hey;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /echo {
+            proxy_pass http://127.0.0.1:8080/echo;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ...
+}
